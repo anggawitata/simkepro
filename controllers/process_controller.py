@@ -1,38 +1,53 @@
 import os
 from models.data_model import read_bps_file, create_summary
 
-# Folder untuk menyimpan file upload
 UPLOAD_FOLDER = "uploads"
+LAST_FILE = os.path.join(UPLOAD_FOLDER, "last_file")
 
-# Fungsi untuk menyimpan file dari user
 def save_file(file):
-    # Pastikan folder uploads ada
+    import os
+    import shutil
+
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)
 
-    # Gunakan nama asli file (atau bisa kamu ubah)
-    filename = file.filename
-
-    # Path lengkap file
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
-
-    # Simpan file
+    filepath = os.path.join(UPLOAD_FOLDER, file.filename)
     file.save(filepath)
+
+    # paksa nama tetap
+    ext = os.path.splitext(file.filename)[1].lower()
+    last_path = os.path.join(UPLOAD_FOLDER, "last_file" + ext)
+
+    shutil.copy(filepath, last_path)
+
+    print("SAVED:", last_path)
 
     return filepath
 
 
-# Fungsi untuk memproses file (seperti di Colab)
+def get_last_file():
+    import os
+
+    if not os.path.exists(UPLOAD_FOLDER):
+        return None
+
+    files = os.listdir(UPLOAD_FOLDER)
+
+    # filter file yang mengandung "last_file"
+    last_files = [f for f in files if "last_file" in f]
+
+    if not last_files:
+        return None
+
+    # ambil file pertama
+    last_file = last_files[0]
+
+    return os.path.join(UPLOAD_FOLDER, last_file)
+
+
 def process_file(filepath):
     df = read_bps_file(filepath)
 
-    # tabel preview (seperti sebelumnya)
-    preview_table = df.head(10).to_html(
-        classes='table table-bordered table-striped table-hover',
-        index=False
-    )
-
-    # tabel monitoring (ringkasan)
     summary_df = create_summary(df)
 
     summary_table = summary_df.to_html(
@@ -40,4 +55,4 @@ def process_file(filepath):
         index=False
     )
 
-    return preview_table, summary_table
+    return summary_table
